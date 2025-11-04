@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Passkey Login Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 10px; }
+    input, button { margin: 6px 0; padding: 10px; width: 100%; font-size: 1rem; box-sizing: border-box; }
+    button { cursor: pointer; }
+    .section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 20px; }
+    h2 { margin-top: 0; }
+    #output { white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>🔐 Passkey Authentication Demo</h1>
+
+  <div class="section">
+    <h2>Register a New Passkey</h2>
+    <input id="reg-username" placeholder="Enter username (optional)" />
+    <button id="register-btn">Register</button>
+  </div>
+
+  <div class="section">
+    <h2>Login with Passkey</h2>
+    <button id="login-btn">Login</button>
+  </div>
+
+  <h3>Response</h3>
+  <div id="output"></div>
+
+<script>
+  const RP_ID = window.location.hostname || "localhost";
+  const ORIGIN = window.location.origin;
+
+  const output = msg => {
+    document.getElementById("output").textContent =
+      typeof msg === "string" ? msg : JSON.stringify(msg, null, 2);
+  };
+
+  // === Passkey Registration ===
+  async function registerPasskey() {
+    try {
+      const rpId = RP_ID;
+      const rpName = "My DApp";
+      const username = document.getElementById("reg-username").value || "anonymous";
+
+      const userId = crypto.getRandomValues(new Uint8Array(16));
+
+      const options = {
+        rp: { id: rpId, name: rpName },
+        user: {
+          id: userId,
+          name: username,
+          displayName: username,
+        },
+        challenge: userId, // deterministic: same as userId
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }], // ES256
+        attestation: "none",
+      };
+
+      console.log("→ Registration options:", options);
+      const credential = await navigator.credentials.create({ publicKey: options });
+
+      const result = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credential,
+          userIdHex: userId.toHex(),
+        }),
+      }).then(r => r.json());
+
+      output(result);
+    } catch (err) {
+      console.error(err);
+      output(`Registration failed: ${err.message}`);
+    }
+  }
+
+  // === Passkey Login ===
+  async function loginPasskey() {
+    try {
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+
+      const options = {
+        challenge,
+        rpId: RP_ID,
+        userVerification: "preferred",
+        allowCredentials: [],
+      };
+
+      console.log("→ Login options:", options);
+      const credential = await navigator.credentials.get({ publicKey: options });
+      const result = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credential,
+          apiKeyPublicHex: challenge.toHex(),
+        }),
+      }).then(r => r.json());
+
+      output(result);
+    } catch (err) {
+      console.error(err);
+      output(`Login failed: ${err.message}`);
+    }
+  }
+
+  // Attach listeners
+  document.getElementById("register-btn").onclick = registerPasskey;
+  document.getElementById("login-btn").onclick = loginPasskey;
+</script>
+</body>
+</html>
