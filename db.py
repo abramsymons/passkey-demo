@@ -8,12 +8,8 @@ else:
     users = {}
 
 
-def add_user(user_id, credential_id, public_key, sign_count):
-    users[user_id] = {
-        "credential_id": credential_id,
-        "public_key": public_key,
-        "sign_count": sign_count,
-    }
+def add_user(user_id, data):
+    users[user_id] = data
     _commit()
 
 
@@ -21,8 +17,8 @@ def get_user_by_id(user_id):
     return users[user_id]
 
 
-def set_user_sign_count(user_id, sign_count):
-    users[user_id]["sign_count"] = sign_count
+def update_user(user_id, data):
+    users[user_id].update(data)
     _commit()
 
 

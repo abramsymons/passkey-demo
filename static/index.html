@@ -79,10 +79,28 @@
   }
 
   // === Passkey Login ===
+  async function createChallange() {
+    const apiKeyPublic = crypto.getRandomValues(new Uint8Array(32));
+    const timestamp = parseInt(Date.now() / 1000);
+    const timestampBytes = toBytesBigEndian(timestamp);
+    const msg = new Uint8Array(apiKeyPublic.length + timestampBytes.length);
+    msg.set(apiKeyPublic, 0);
+    msg.set(timestampBytes, apiKeyPublic.length);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", msg);
+    const challenge = new Uint8Array(hashBuffer);
+    return { challenge, apiKeyPublic, timestamp }
+  }
+
+  function toBytesBigEndian(num, byteLength = 8) {
+    const buffer = new ArrayBuffer(byteLength);
+    const view = new DataView(buffer);
+    view.setBigUint64(0, BigInt(num), false); // false = big endian
+    return new Uint8Array(buffer);
+  }
+
   async function loginPasskey() {
     try {
-      const challenge = crypto.getRandomValues(new Uint8Array(32));
-
+      const { challenge, apiKeyPublic, timestamp } = await createChallange();
       const options = {
         challenge,
         rpId: RP_ID,
@@ -97,7 +115,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           credential,
-          apiKeyPublicHex: challenge.toHex(),
+          apiKeyPublicHex: apiKeyPublic.toHex(),
+          timestamp,
         }),
       }).then(r => r.json());
 
