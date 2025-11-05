@@ -14,7 +14,7 @@ app = FastAPI()
 
 RP_ID = "localhost"
 RP_NAME = "My App"
-ORIGIN = "http://localhost:8001"
+ORIGIN = "http://localhost:8000"
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -36,7 +36,7 @@ def serve_index():
 
 
 @app.post("/register")
-async def register_complete(data: RegisterRequest):
+async def register(data: RegisterRequest):
     verification = verify_registration_response(
         credential=data.credential,
         expected_challenge=bytes.fromhex(data.userIdHex),
@@ -59,7 +59,7 @@ async def register_complete(data: RegisterRequest):
 
 
 @app.post("/login")
-async def login_complete(data: LoginRequest):
+async def login(data: LoginRequest):
     api_key_public_hex = data.apiKeyPublicHex
     timestamp = int(data.timestamp)
 
