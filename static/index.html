@@ -54,6 +54,10 @@
           name: username,
           displayName: username,
         },
+        authenticatorSelection: {
+          residentKey: "required",   // force discoverable credential
+          userVerification: "preferred",
+        },
         challenge: userId, // deterministic: same as userId
         pubKeyCredParams: [{ type: "public-key", alg: -7 }], // ES256
         attestation: "none",
